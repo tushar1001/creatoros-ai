@@ -1,0 +1,92 @@
+// Production schema for hosted Postgres databases (Vercel + Neon / Supabase).
+//
+// Local development uses `schema.prisma` (SQLite). This variant is used
+// automatically by `scripts/vercel-build.sh` when deploying to Vercel:
+// it is validated, pushed to the database and used to generate the client
+// during every Vercel build.
+//
+// Connect a database in one of two ways:
+//  1. Vercel dashboard > Storage > Create Database (Neon Postgres) - the
+//     integration sets DATABASE_URL for you.
+//  2. Manually add DATABASE_URL=postgres://... in Vercel > Settings >
+//     Environment Variables.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Creator {
+  id              String           @id @default(cuid())
+  name            String?
+  instagramHandle String?
+  description     String?
+  niche           String?
+  expertise       String? // JSON array of strings
+  audience        String? // JSON array of strings
+  language        String           @default("English")
+  followers       Int?
+  monetisationExp String?
+  intelligence    String? // full AI intelligence JSON snapshot
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  stores          Store[]
+  conversations   AiConversation[]
+}
+
+model Store {
+  id            String           @id @default(cuid())
+  creatorId     String
+  creator       Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  slug          String           @unique
+  headline      String           @default("")
+  bio           String           @default("")
+  about         String           @default("")
+  theme         String           @default("minimal")
+  accent        String           @default("#7655E9")
+  cta           String           @default("Get instant access")
+  profileImage  String?
+  socials       String? // JSON object of social links
+  status        String           @default("draft")
+  publishedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  products      Product[]
+  conversations AiConversation[]
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name             String
+  description      String   @default("")
+  format           String   @default("Digital guide")
+  priceInr         Int      @default(499)
+  targetAudience   String   @default("")
+  problemSolved    String   @default("")
+  pricingRationale String   @default("")
+  difficulty       String   @default("Easy")
+  launchStrategy   String   @default("")
+  confidence       String   @default("Moderate hypothesis")
+  whyRecommended   String? // JSON array of strings
+  coverStyle       Int      @default(0)
+  pricingIntel     String? // JSON blob of live competitor pricing research
+  displayOrder     Int      @default(0)
+  createdAt        DateTime @default(now())
+}
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  creatorId String?
+  storeId   String?
+  role      String
+  message   String
+  createdAt DateTime @default(now())
+  creator   Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+}
